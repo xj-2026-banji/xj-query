@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>学员信息查询</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; padding: 0; min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+    background: #f2f5fa; color: #1f2733;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 0 16px 40px; }
+  .hero {
+    background: linear-gradient(135deg, #3b7cff 0%, #5b5bf0 100%);
+    color: #fff; padding: 28px 20px 46px; border-radius: 0 0 28px 28px;
+    margin: 0 -16px 0; text-align: center;
+  }
+  .hero h1 { margin: 0 0 8px; font-size: 20px; font-weight: 600; letter-spacing: .5px; }
+  .hero p { margin: 0; font-size: 13px; opacity: .88; }
+  .card {
+    background: #fff; border-radius: 16px; padding: 20px;
+    margin-top: -30px; box-shadow: 0 6px 24px rgba(31,39,51,.09);
+  }
+  label { display: block; font-size: 13px; color: #6b7585; margin: 0 0 6px 2px; }
+  .field { margin-bottom: 14px; }
+  input {
+    width: 100%; height: 46px; padding: 0 14px; font-size: 16px;
+    border: 1px solid #dfe4ec; border-radius: 10px; background: #fafbfd;
+    outline: none; transition: border-color .15s;
+  }
+  input:focus { border-color: #3b7cff; background: #fff; }
+  button {
+    width: 100%; height: 48px; border: 0; border-radius: 10px;
+    background: linear-gradient(135deg, #3b7cff, #5b5bf0);
+    color: #fff; font-size: 16px; font-weight: 600; letter-spacing: 2px;
+    box-shadow: 0 4px 14px rgba(59,124,255,.3);
+  }
+  button:active { opacity: .85; }
+  .btn-plain {
+    width: 100%; height: 44px; border: 0; border-radius: 10px; background: #eef2fa;
+    color: #4a5a75; font-size: 15px; font-weight: 500; letter-spacing: 0; box-shadow: none;
+  }
+  .tip { font-size: 12px; color: #98a1b0; text-align: center; margin-top: 14px; line-height: 1.7; }
+
+  .result { margin-top: 18px; }
+  .rcard { border: 1px solid #e6ebf2; border-radius: 14px; overflow: hidden; margin-bottom: 12px; background: #fff; }
+  .rname {
+    background: #f5f8ff; padding: 12px 16px; font-size: 16px; font-weight: 600;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .rtag { font-size: 12px; font-weight: 400; color: #5b6b85; background: #e8eefc; padding: 3px 10px; border-radius: 20px; }
+  .rgrid { padding: 6px 16px 14px; }
+  .rrow { display: flex; padding: 10px 0; border-bottom: 1px dashed #eef1f6; font-size: 14px; }
+  .rrow:last-child { border-bottom: 0; }
+  .rrow .k { width: 82px; flex: none; color: #8a93a3; }
+  .rrow .v { flex: 1; color: #1f2733; font-weight: 500; word-break: break-all; }
+  .empty { text-align: center; padding: 26px 10px; color: #98a1b0; font-size: 14px; line-height: 1.8; }
+  .empty b { display: block; font-size: 34px; margin-bottom: 8px; }
+  .cands { margin-top: 16px; }
+  .cands-title { font-size: 13px; color: #6b7585; margin-bottom: 8px; }
+  .cand {
+    padding: 13px 16px; border: 1px solid #e6ebf2; border-radius: 12px;
+    margin-bottom: 10px; font-size: 14px; display: flex;
+    justify-content: space-between; align-items: center; background: #fff;
+    cursor: pointer;
+  }
+  .cand:active { background: #f5f8ff; }
+  .cand .cn { font-weight: 600; flex: none; }
+  .cand .ci { color: #8a93a3; font-size: 12px; text-align: right; margin-left: 10px; }
+  .back-wrap { text-align: center; margin-top: 4px; }
+  .foot { text-align: center; font-size: 12px; color: #aab2c0; padding-top: 22px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <h1 id="uiTitle">学员信息查询</h1>
+    <p id="uiSubtitle">请输入姓名，查询所在单位、中队、班级与房间号</p>
+  </div>
+
+  <div class="card">
+    <div class="field">
+      <label for="nameInput" id="uiNameLabel">姓名</label>
+      <input id="nameInput" type="text" placeholder="请输入姓名" autocomplete="off">
+    </div>
+    <button id="searchBtn">查 询</button>
+    <div class="tip" id="uiTip">信息如有疑问，请联系现场工作人员核实</div>
+    <div id="output"></div>
+  </div>
+
+  <div class="foot" id="uiFoot"></div>
+</div>
+
+<script>
+/* =========================================================================
+ *  配置区（管理员改成自己的内容）
+ * ========================================================================= */
+var CONFIG = {
+  title:      "2026级学员信息查询",
+  subtitle:   "请输入姓名，查询所在单位、中队、班级与房间号",
+  nameLabel:  "姓名",
+  // 结果里要展示哪些字段、按什么顺序（key 对应下面数据里的字段名）
+  showFields: [
+    { key: "unit", label: "单位" },
+    { key: "team", label: "中队" },
+    { key: "cls",  label: "班级" },
+    { key: "room", label: "房间号" },
+    { key: "note", label: "备注" }
+  ],
+  // 候选列表里用来区分同名学员的字段
+  candFields: ["unit", "team", "cls"],
+  tip:  "信息如有疑问，请联系现场工作人员核实",
+  foot: ""
+};
+
+/* =========================================================================
+ *  学员数据区
+ *  一行一个人。字段说明：
+ *    seq  序号（仅备查，不在结果中显示）
+ *    name 姓名（必填）  unit 单位   team 中队
+ *    cls  班级         room 房间号  note 备注（可留空）
+ *  数据多的话，用配套的「从Excel生成页面数据.py」一键导入，不用手敲。
+ * ========================================================================= */
+var STUDENT_DATA =
+/*__DATA_BEGIN__*/
+[
+  {"seq": "1", "name": "张珂菱", "unit": "阿坝JY", "team": "一中队", "cls": "一班", "room": "205", "note": ""},
+  {"seq": "1", "name": "陈俊州", "unit": "绵阳JY", "team": "一中队", "cls": "一班", "room": "205", "note": ""},
+  {"seq": "1", "name": "杨云", "unit": "巴中JY", "team": "一中队", "cls": "一班", "room": "207", "note": ""},
+  {"seq": "1", "name": "曹赵致远", "unit": "绵阳JY", "team": "一中队", "cls": "一班", "room": "207", "note": ""},
+  {"seq": "1", "name": "谢旭", "unit": "德阳JY", "team": "一中队", "cls": "一班", "room": "209", "note": ""},
+  {"seq": "1", "name": "钟承礼", "unit": "绵阳JY", "team": "一中队", "cls": "一班", "room": "209", "note": ""},
+  {"seq": "1", "name": "李明地", "unit": "川北JY", "team": "一中队", "cls": "一班", "room": "210", "note": ""},
+  {"seq": "1", "name": "吴恒", "unit": "绵阳JY", "team": "一中队", "cls": "一班", "room": "210", "note": ""},
+  {"seq": "1", "name": "严路乔", "unit": "阿坝JY", "team": "一中队", "cls": "一班", "room": "213", "note": ""},
+  {"seq": "1", "name": "范冲", "unit": "绵阳JY", "team": "一中队", "cls": "一班", "room": "213", "note": ""},
+  {"seq": "1", "name": "龚代旭", "unit": "巴中JY", "team": "一中队", "cls": "一班", "room": "217", "note": ""},
+  {"seq": "1", "name": "陈柯锐", "unit": "绵阳JY", "team": "一中队", "cls": "一班", "room": "217", "note": ""},
+  {"seq": "1", "name": "方栋玉", "unit": "德阳JY", "team": "一中队", "cls": "二班", "room": "218", "note": ""},
+  {"seq": "1", "name": "张治川", "unit": "绵阳JY", "team": "一中队", "cls": "二班", "room": "218", "note": ""},
+  {"seq": "1", "name": "邵云浩", "unit": "川北JY", "team": "一中队", "cls": "二班", "room": "220", "note": ""},
+  {"seq": "1", "name": "苟安帅", "unit": "绵阳JY", "team": "一中队", "cls": "二班", "room": "220", "note": ""},
+  {"seq": "1", "name": "丁文阳", "unit": "阿坝JY", "team": "一中队", "cls": "二班", "room": "302", "note": ""},
+  {"seq": "1", "name": "王传宇", "unit": "绵阳JY", "team": "一中队", "cls": "二班", "room": "302", "note": ""},
+  {"seq": "1", "name": "吴一杭", "unit": "巴中JY", "team": "一中队", "cls": "二班", "room": "304", "note": ""},
+  {"seq": "1", "name": "鹿源", "unit": "绵阳JY", "team": "一中队", "cls": "二班", "room": "304", "note": ""},
+  {"seq": "1", "name": "任梦轩", "unit": "德阳JY", "team": "一中队", "cls": "二班", "room": "305", "note": ""},
+  {"seq": "1", "name": "高凡", "unit": "绵阳JY", "team": "一中队", "cls": "二班", "room": "305", "note": ""},
+  {"seq": "1", "name": "熊建成", "unit": "川北JY", "team": "一中队", "cls": "二班", "room": "306", "note": ""},
+  {"seq": "1", "name": "李金成", "unit": "绵阳JY", "team": "一中队", "cls": "二班", "room": "306", "note": ""},
+  {"seq": "1", "name": "刘张铭", "unit": "阿坝JY", "team": "一中队", "cls": "三班", "room": "308", "note": ""},
+  {"seq": "1", "name": "王武成", "unit": "绵阳JY", "team": "一中队", "cls": "三班", "room": "308", "note": ""},
+  {"seq": "1", "name": "汤童", "unit": "巴中JY", "team": "一中队", "cls": "三班", "room": "310", "note": ""},
+  {"seq": "1", "name": "白京平", "unit": "绵阳JY", "team": "一中队", "cls": "三班", "room": "310", "note": ""},
+  {"seq": "1", "name": "刘成", "unit": "德阳JY", "team": "一中队", "cls": "三班", "room": "312", "note": ""},
+  {"seq": "1", "name": "穆于希", "unit": "绵阳JY", "team": "一中队", "cls": "三班", "room": "312", "note": ""},
+  {"seq": "1", "name": "刘柠熙", "unit": "川北JY", "team": "一中队", "cls": "三班", "room": "314", "note": ""},
+  {"seq": "1", "name": "罗运强", "unit": "绵阳JY", "team": "一中队", "cls": "三班", "room": "314", "note": ""},
+  {"seq": "1", "name": "段富俊", "unit": "阿坝JY", "team": "一中队", "cls": "三班", "room": "315", "note": ""},
+  {"seq": "1", "name": "李星辰", "unit": "绵阳JY", "team": "一中队", "cls": "三班", "room": "315", "note": ""},
+  {"seq": "1", "name": "康坤", "unit": "巴中JY", "team": "一中队", "cls": "三班", "room": "316", "note": ""},
+  {"seq": "1", "name": "李昌营", "unit": "绵阳JY", "team": "一中队", "cls": "三班", "room": "316", "note": ""},
+  {"seq": "1", "name": "张峰瑞", "unit": "德阳JY", "team": "二中队", "cls": "四班", "room": "318", "note": ""},
+  {"seq": "1", "name": "张莫寒", "unit": "绵阳JY", "team": "二中队", "cls": "四班", "room": "318", "note": ""},
+  {"seq": "1", "name": "安志恒", "unit": "川北JY", "team": "二中队", "cls": "四班", "room": "402", "note": ""},
+  {"seq": "1", "name": "李和蔚", "unit": "绵阳JY", "team": "二中队", "cls": "四班", "room": "402", "note": ""},
+  {"seq": "1", "name": "刘傲然", "unit": "阿坝JY", "team": "二中队", "cls": "四班", "room": "403", "note": ""},
+  {"seq": "1", "name": "杨馥源", "unit": "绵阳JY", "team": "二中队", "cls": "四班", "room": "403", "note": ""},
+  {"seq": "1", "name": "陈俊溪", "unit": "巴中JY", "team": "二中队", "cls": "四班", "room": "404", "note": ""},
+  {"seq": "1", "name": "姜钧耀", "unit": "绵阳JY", "team": "二中队", "cls": "四班", "room": "404", "note": ""},
+  {"seq": "1", "name": "徐子闲", "unit": "德阳JY", "team": "二中队", "cls": "四班", "room": "405", "note": ""},
+  {"seq": "1", "name": "张继夫", "unit": "绵阳JY", "team": "二中队", "cls": "四班", "room": "405", "note": ""},
+  {"seq": "1", "name": "罗子恒", "unit": "川北JY", "team": "二中队", "cls": "四班", "room": "406", "note": ""},
+  {"seq": "1", "name": "苏念念", "unit": "绵阳JY", "team": "二中队", "cls": "四班", "room": "406", "note": ""},
+  {"seq": "1", "name": "肖阳", "unit": "巴中JY", "team": "二中队", "cls": "五班", "room": "407", "note": ""},
+  {"seq": "1", "name": "陈斌", "unit": "绵阳JY", "team": "二中队", "cls": "五班", "room": "407", "note": ""},
+  {"seq": "1", "name": "高一鼎", "unit": "德阳JY", "team": "二中队", "cls": "五班", "room": "408", "note": ""},
+  {"seq": "1", "name": "魏鸿宇", "unit": "绵阳JY", "team": "二中队", "cls": "五班", "room": "408", "note": ""},
+  {"seq": "1", "name": "代宇祺", "unit": "川北JY", "team": "二中队", "cls": "五班", "room": "409", "note": ""},
+  {"seq": "1", "name": "王毅", "unit": "绵阳JY", "team": "二中队", "cls": "五班", "room": "409", "note": ""},
+  {"seq": "1", "name": "吴飞漾", "unit": "巴中JY", "team": "二中队", "cls": "五班", "room": "410", "note": ""},
+  {"seq": "1", "name": "李光耀", "unit": "绵阳JY", "team": "二中队", "cls": "五班", "room": "410", "note": ""},
+  {"seq": "1", "name": "唐颢", "unit": "德阳JY", "team": "二中队", "cls": "五班", "room": "411", "note": ""},
+  {"seq": "1", "name": "周思睿", "unit": "绵阳JY", "team": "二中队", "cls": "五班", "room": "411", "note": ""},
+  {"seq": "1", "name": "张哲", "unit": "川北JY", "team": "二中队", "cls": "五班", "room": "412", "note": ""},
+  {"seq": "1", "name": "钟俊", "unit": "绵阳JY", "team": "二中队", "cls": "五班", "room": "412", "note": ""},
+  {"seq": "1", "name": "卫战", "unit": "巴中JY", "team": "二中队", "cls": "六班", "room": "413", "note": ""},
+  {"seq": "1", "name": "李攀连", "unit": "绵阳JY", "team": "二中队", "cls": "六班", "room": "413", "note": ""},
+  {"seq": "1", "name": "唐闻临", "unit": "德阳JY", "team": "二中队", "cls": "六班", "room": "414", "note": ""},
+  {"seq": "1", "name": "王睿", "unit": "绵阳JY", "team": "二中队", "cls": "六班", "room": "414", "note": ""},
+  {"seq": "1", "name": "张哲力", "unit": "川北JY", "team": "二中队", "cls": "六班", "room": "415", "note": ""},
+  {"seq": "1", "name": "代贤", "unit": "绵阳JY", "team": "二中队", "cls": "六班", "room": "415", "note": ""},
+  {"seq": "1", "name": "谢裕博", "unit": "德阳JY", "team": "二中队", "cls": "六班", "room": "416", "note": ""},
+  {"seq": "1", "name": "李欣林", "unit": "巴中JY", "team": "二中队", "cls": "六班", "room": "416", "note": ""},
+  {"seq": "1", "name": "臧诗桥", "unit": "川北JY", "team": "二中队", "cls": "六班", "room": "417", "note": ""},
+  {"seq": "1", "name": "灯真罗卜", "unit": "德阳JY", "team": "二中队", "cls": "六班", "room": "417", "note": ""},
+  {"seq": "1", "name": "吴茂金", "unit": "川北JY", "team": "二中队", "cls": "六班", "room": "419", "note": ""},
+  {"seq": "1", "name": "莫凡", "unit": "川北JY", "team": "二中队", "cls": "六班", "room": "420", "note": ""},
+  {"seq": "1", "name": "肖勇均", "unit": "德阳JY", "team": "二中队", "cls": "六班", "room": "420", "note": ""}
+]
+/*__DATA_END__*/
+;
+
+/* =========================================================================
+ *  以下为查询逻辑，一般不需要改动
+ * ========================================================================= */
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+
+  document.title = CONFIG.title;
+  $("uiTitle").textContent = CONFIG.title;
+  $("uiSubtitle").textContent = CONFIG.subtitle;
+  $("uiNameLabel").textContent = CONFIG.nameLabel || "姓名";
+  $("uiTip").textContent = CONFIG.tip || "";
+  $("uiFoot").textContent = CONFIG.foot || "";
+  $("nameInput").placeholder = "请输入" + (CONFIG.nameLabel || "姓名");
+
+  function trim(s) { return (s || "").replace(/\s+/g, ""); }
+  function norm(s) { return (s || "").replace(/[\s\u3000]/g, "").toLowerCase(); }
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function isEmpty(v) { return v === undefined || v === null || String(v).trim() === ""; }
+
+  function renderPerson(p) {
+    var html = '<div class="rcard"><div class="rname">' + esc(p.name) +
+               '<span class="rtag">查询结果</span></div><div class="rgrid">';
+    (CONFIG.showFields || []).forEach(function (f) {
+      if (isEmpty(p[f.key])) return;          // 空字段自动隐藏
+      html += '<div class="rrow"><div class="k">' + esc(f.label) +
+              '</div><div class="v">' + esc(p[f.key]) + '</div></div>';
+    });
+    return html + '</div></div>';
+  }
+
+  function summary(p) {
+    var parts = [];
+    (CONFIG.candFields || []).forEach(function (k) { if (!isEmpty(p[k])) parts.push(p[k]); });
+    return parts.length ? parts.join(" · ") : "点击查看详情";
+  }
+
+  function renderCandidates(list, hint) {
+    var html = '<div class="cands"><div class="cands-title">' + esc(hint) + '</div>';
+    list.forEach(function (p, i) {
+      html += '<div class="cand" data-i="' + i + '"><span class="cn">' + esc(p.name) +
+              '</span><span class="ci">' + esc(summary(p)) + ' ›</span></div>';
+    });
+    $("output").innerHTML = html + '</div>';
+
+    var nodes = $("output").querySelectorAll(".cand");
+    for (var i = 0; i < nodes.length; i++) {
+      (function (idx) {
+        nodes[idx].onclick = function () {
+          $("output").innerHTML = '<div class="result">' + renderPerson(list[idx]) + '</div>' +
+            '<div class="back-wrap"><button class="btn-plain" id="backBtn">返回重新查询</button></div>';
+          $("backBtn").onclick = reset;
+        };
+      })(i);
+    }
+  }
+
+  function reset() {
+    $("nameInput").value = "";
+    $("output").innerHTML = "";
+  }
+
+  function doSearch() {
+    var out = $("output");
+    var q = trim($("nameInput").value);
+    if (!q) { out.innerHTML = '<div class="empty"><b>✏️</b>请先输入' + esc(CONFIG.nameLabel || "姓名") + '</div>'; return; }
+
+    var nq = norm(q);
+    var exact = STUDENT_DATA.filter(function (p) { return norm(p.name) === nq; });
+
+    if (exact.length === 1) { out.innerHTML = '<div class="result">' + renderPerson(exact[0]) + '</div>'; return; }
+    if (exact.length > 1) { renderCandidates(exact, "找到 " + exact.length + " 位同名学员，请点击本人查看"); return; }
+
+    // 没有完全一致的，退一步做模糊匹配（输入"张"也能列出所有姓张的）
+    var fuzzy = STUDENT_DATA.filter(function (p) { return norm(p.name).indexOf(nq) > -1; });
+    if (fuzzy.length === 1) { out.innerHTML = '<div class="result">' + renderPerson(fuzzy[0]) + '</div>'; return; }
+    if (fuzzy.length > 1) { renderCandidates(fuzzy, "找到 " + fuzzy.length + " 位相关学员，请点击本人查看"); return; }
+
+    out.innerHTML = '<div class="empty"><b>🔍</b>未查询到匹配的信息<br>请核对姓名后重新输入，或联系现场工作人员</div>';
+  }
+
+  $("searchBtn").onclick = doSearch;
+  $("nameInput").addEventListener("keydown", function (e) { if (e.key === "Enter") doSearch(); });
+})();
+</script>
+</body>
+</html>
